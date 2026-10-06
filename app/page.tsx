@@ -1,10 +1,13 @@
 "use client"
 import { useState } from "react"
+import styles from "./page.module.css"
 interface Message {
   id: string,
   role: "user" | "assistant",
   content: string
 }
+
+
 export default function Home() {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([
@@ -16,31 +19,37 @@ export default function Home() {
   ])
 
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (input.trim() === "") {
       return
     }
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [...messages, userMessage]
+      })
+    });
+    const data = await res.json();
+
     setMessages((prev) => [
       ...prev,
       {
-        id: Date.now().toString(),
-        role: "user",
-        content: input
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.replyAiMessage
       }
     ])
 
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id : Date.now().toString(),
-          role : "assistant",
-          content : "Ուսումնասիրեմ և ասեմ քեզ ․․․"
-        }
-      ])
-    }, 1000);
-    setInput("")
   }
 
   return (
@@ -50,17 +59,24 @@ export default function Home() {
           Smart AI Travel Agent
         </h1>
         <div className="flex-1 overflow-y-auto py-4">
-          <p className="text-gray-500">հաղորդագրությունները...</p>
           {messages.map((message) => (
-            <p key={message.id}>
-              {message.content}
-            </p>
+            <div
+              key={message.id}
+              className={message.role === "user" ? styles.rowUser : styles.rowAssistant}
+            >
+              <div
+                className={`${styles.bubble} ${message.role === "user" ? styles.bubbleUser : styles.bubbleAssistant
+                  }`}
+              >
+                {message.content}
+              </div>
+            </div>
           ))}
         </div>
         <form className="flex gap-2" onSubmit={handleSubmit}>
           <input
             type="text"
-            placeholder="Ո՞ւր ես ուզում ճանապարհորդել..."
+            placeholder="Որտե՞ղ ես ուզում ճանապարհորդել ..."
             className="flex-1 border p-2 rounded"
             value={input}
             onChange={(e) => setInput(e.target.value)}

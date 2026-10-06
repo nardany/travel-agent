@@ -1,0 +1,32 @@
+.rowUser {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.rowAssistant {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.bubble {
+  max-width: 80%;
+  padding: 10px 16px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.bubbleUser {
+  background-color: #0070f3;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+.bubbleAssistant {
+  background-color: #f1f3f5;
+  color: #212529;
+  border-bottom-left-radius: 4px;
+}
