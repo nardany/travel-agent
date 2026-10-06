@@ -4,7 +4,8 @@ import styles from "./page.module.css"
 interface Message {
   id: string,
   role: "user" | "assistant",
-  content: string
+  content: string,
+  isError?: boolean;
 }
 
 
@@ -38,7 +39,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages, userMessage]
+          messages: [...messages.filter((m)=> !m.isError), userMessage]
         })
       });
 
@@ -63,7 +64,8 @@ export default function Home() {
         {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: `Error ${error.message}`
+          content: `Error ${error.message}`,
+          isError: true,
         }
       ])
     } finally {
@@ -78,7 +80,7 @@ export default function Home() {
           Smart AI Travel Agent
         </h1>
         <div className="flex-1 overflow-y-auto py-4">
-          {messages.map((message : Message) => (
+          {messages.map((message) => (
             <div
               key={message.id}
               className={message.role === "user" ? styles.rowUser : styles.rowAssistant}

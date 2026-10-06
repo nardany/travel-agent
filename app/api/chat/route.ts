@@ -23,7 +23,20 @@ export async function POST(req: Request) {
       { status: 400 }
     )
   }
+  const isValid = messages.every(
+    (m: any) =>
+      (m.role === "user" || m.role === "assistant") &&
+      typeof m.content === "string" &&
+      m.content.trim().length > 0 &&
+      m.content.length <= 10000
+  );
 
+  if (!isValid) {
+    return Response.json(
+      { error: "Invalid message: must have valid role and content under 10,000 characters." },
+      { status: 400 }
+    );
+  }
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -33,7 +46,7 @@ export async function POST(req: Request) {
     )
   }
 
-  const contents = messages.map((m: any) => ({
+  const contents = messages.map((m: Message) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }]
   }));

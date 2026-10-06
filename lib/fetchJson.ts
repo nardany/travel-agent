@@ -7,10 +7,9 @@ export type FetchError = {
   retryable: boolean;
 };
 
-export type Result<T> = {
-  data: T | null;
-  error: FetchError | null;
-};
+export type Result<T> =
+  | { data: T; error: null }
+  | { data: null; error: FetchError };
 
 export async function fetchJson<T>(
   url: string,
@@ -29,8 +28,8 @@ export async function fetchJson<T>(
             res.status === 404
               ? "Resource not found"
               : res.status === 429
-              ? "Too many requests"
-              : `HTTP error ${res.status}`,
+                ? "Too many requests"
+                : `HTTP error ${res.status}`,
           retryable: res.status >= 500 || res.status === 429,
         },
       };
