@@ -17,6 +17,7 @@ export default function Home() {
       content: "Բարև, ես կոգնեմ քեզ պլանավորել քո ճամփորդությունը"
     }
   ])
+  const [loading, setLoading] = useState(false)
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,6 +32,7 @@ export default function Home() {
     };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setLoading(true);
 
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -49,7 +51,7 @@ export default function Home() {
         content: data.replyAiMessage
       }
     ])
-
+    setLoading(false);
   }
 
   return (
@@ -81,8 +83,8 @@ export default function Home() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
-          <button className="bg-blue-600 text-white px-4 py-2 rounded">
-            Ուղարկել
+          <button className="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer  disabled:opacity-50 disabled:cursor-not-allowed" disabled={loading}>
+              ՈՒղարկել
           </button>
         </form>
       </main>
