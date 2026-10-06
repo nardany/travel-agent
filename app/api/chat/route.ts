@@ -5,6 +5,32 @@ interface Message {
   content: string;
 }
 
+function isMessage(m: unknown): m is Message {
+  return (
+    m !== null &&
+    typeof m === "object" &&
+    "role" in m &&
+    "content" in m &&
+    (m.role === "user" || m.role === "assistant") &&
+    typeof m.content === "string" &&
+    m.content.trim().length > 0 &&
+    m.content.length <= 10000
+  );
+}
+
+interface GeminiResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{ text?: string }>;
+    };
+  }>;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+  };
+}
+
 export async function POST(req: Request) {
   let body;
   try {
@@ -17,41 +43,35 @@ export async function POST(req: Request) {
   }
   const { messages } = body;
 
-  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+  if (!messages || !Array.isArray(messages) || messages.length === 0 || messages.length > 50) {
     return Response.json(
-      { error: "messages must be a non-empty array" },
+      { error: "messages must be a non-empty array with at most 50 messages" },
       { status: 400 }
     )
   }
-  const isValid = messages.every(
-    (m: any) =>
-      (m.role === "user" || m.role === "assistant") &&
-      typeof m.content === "string" &&
-      m.content.trim().length > 0 &&
-      m.content.length <= 10000
-  );
 
-  if (!isValid) {
+  if (!messages.every(isMessage)) {
     return Response.json(
       { error: "Invalid message: must have valid role and content under 10,000 characters." },
       { status: 400 }
     );
   }
+
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     return Response.json(
-      { error: "Api key not fount" },
+      { error: "API key not found" },
       { status: 500 }
     )
   }
 
-  const contents = messages.map((m: Message) => ({
+  const contents = messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }]
   }));
 
-  const { data, error } = await fetchJson<any>(
+  const { data, error } = await fetchJson<GeminiResponse>(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent`,
     {
       method: "POST",
@@ -72,7 +92,7 @@ export async function POST(req: Request) {
   if (error || !data) {
     console.error("Gemini Upstream Error:", error);
     return Response.json(
-      { error: "The AI ​​service is temporarily unavailable. Please try again later." },
+      { error: "The AI service is temporarily unavailable. Please try again later." },
       { status: 502 }
     );
   }
