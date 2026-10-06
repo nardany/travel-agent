@@ -1,4 +1,9 @@
+import { fetchJson } from "@/lib/fetchJson"
 
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
 
 export async function POST(req: Request) {
   let body;
@@ -6,7 +11,7 @@ export async function POST(req: Request) {
     body = await req.json()
   } catch (error) {
     return Response.json(
-      { error: "Invalid Josn" },
+      { error: "Invalid JSON" },
       { status: 400 }
     )
   }
@@ -33,7 +38,7 @@ export async function POST(req: Request) {
     parts: [{ text: m.content }]
   }));
 
-  const response = await fetch(
+  const { data, error } = await fetchJson<any>(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent`,
     {
       method: "POST",
@@ -51,14 +56,14 @@ export async function POST(req: Request) {
       })
     }
   );
-  const data = await response.json();
-
-  if (!response.ok) {
+  if (error || !data) {
+    console.error("Gemini Upstream Error:", error);
     return Response.json(
-      { error: data.error?.message || "Gemini API error" },
-      { status: response.status }
+      { error: "The AI ​​service is temporarily unavailable. Please try again later." },
+      { status: 502 }
     );
   }
+
 
   const replyAiMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response was received."
   console.log("Tokens Usage:", data.usageMetadata);

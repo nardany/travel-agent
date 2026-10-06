@@ -33,25 +33,42 @@ export default function Home() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...messages, userMessage]
+        })
+      });
 
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: [...messages, userMessage]
-      })
-    });
-    const data = await res.json();
+      const data = await res.json();
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.replyAiMessage
+      if (!res.ok) {
+        throw new Error(data.error || "The request failed.");
       }
-    ])
-    setLoading(false);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: data.replyAiMessage
+        }
+      ])
+
+    } catch (error: any) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: `Error ${error.message}`
+        }
+      ])
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -61,7 +78,7 @@ export default function Home() {
           Smart AI Travel Agent
         </h1>
         <div className="flex-1 overflow-y-auto py-4">
-          {messages.map((message) => (
+          {messages.map((message : Message) => (
             <div
               key={message.id}
               className={message.role === "user" ? styles.rowUser : styles.rowAssistant}
@@ -84,7 +101,7 @@ export default function Home() {
             onChange={(e) => setInput(e.target.value)}
           />
           <button className="bg-blue-600 text-white px-4 py-2 rounded cursor-pointer  disabled:opacity-50 disabled:cursor-not-allowed" disabled={loading}>
-              ՈՒղարկել
+            ՈՒղարկել
           </button>
         </form>
       </main>
