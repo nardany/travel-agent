@@ -41,6 +41,12 @@ export async function POST(req: Request) {
       { status: 400 }
     )
   }
+  if(body === null || typeof body !== "object"){
+    return Response.json(
+      {error : "Invalid request body"},
+      {status : 400}
+    )
+  }
   const { messages } = body;
 
   if (!messages || !Array.isArray(messages) || messages.length === 0 || messages.length > 50) {
@@ -89,6 +95,7 @@ export async function POST(req: Request) {
       })
     }
   );
+
   if (error || !data) {
     console.error("Gemini Upstream Error:", error);
     return Response.json(
