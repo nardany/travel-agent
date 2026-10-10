@@ -1,22 +1,17 @@
 import { fetchJson } from "@/lib/fetchJson"
+import { z } from "zod"
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+const MessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().trim().min(1).max(10000)
+})
 
-function isMessage(m: unknown): m is Message {
-  return (
-    m !== null &&
-    typeof m === "object" &&
-    "role" in m &&
-    "content" in m &&
-    (m.role === "user" || m.role === "assistant") &&
-    typeof m.content === "string" &&
-    m.content.trim().length > 0 &&
-    m.content.length <= 10000
-  );
-}
+type Message = z.infer<typeof MessageSchema>
+
+const ChatRequestSchema = z.object({
+  messages: z.array(MessageSchema).min(1).max(50),
+});
+
 
 interface GeminiResponse {
   candidates?: Array<{
@@ -33,6 +28,7 @@ interface GeminiResponse {
 
 export async function POST(req: Request) {
   let body;
+
   try {
     body = await req.json()
   } catch (error) {
@@ -41,27 +37,17 @@ export async function POST(req: Request) {
       { status: 400 }
     )
   }
-  if(body === null || typeof body !== "object"){
-    return Response.json(
-      {error : "Invalid request body"},
-      {status : 400}
-    )
-  }
-  const { messages } = body;
 
-  if (!messages || !Array.isArray(messages) || messages.length === 0 || messages.length > 50) {
+  const result = ChatRequestSchema.safeParse(body);
+
+  if (!result.success) {
     return Response.json(
-      { error: "messages must be a non-empty array with at most 50 messages" },
+      { error: "Invalid request body" },
       { status: 400 }
     )
   }
 
-  if (!messages.every(isMessage)) {
-    return Response.json(
-      { error: "Invalid message: must have valid role and content under 10,000 characters." },
-      { status: 400 }
-    );
-  }
+  const { messages } = result.data;
 
   const apiKey = process.env.GEMINI_API_KEY;
 
