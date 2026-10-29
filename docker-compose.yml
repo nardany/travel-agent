@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:17
+    container_name: travel-agent-db
+    environment:
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: travel
+    ports:
+      - "5432:5432"
+    volumes:
+      - travel-agent-data:/var/lib/postgresql/data
+
+volumes:
+  travel-agent-data:
