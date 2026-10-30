@@ -19,7 +19,7 @@ export default function Home() {
     }
   ])
   const [loading, setLoading] = useState(false)
-
+  const [conversationId, setConversationId] = useState<number | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,7 +39,8 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages.filter((m)=> !m.isError), userMessage]
+         conversationId : conversationId ?? undefined,
+         message : userMessage.content
         })
       });
 
@@ -49,6 +50,7 @@ export default function Home() {
         throw new Error(data.error || "The request failed.");
       }
 
+      setConversationId(data.conversationId);
       setMessages((prev) => [
         ...prev,
         {
