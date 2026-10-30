@@ -1,8 +1,7 @@
 import { fetchJson } from "@/lib/fetchJson";
 import { z } from "zod";
 import { getConversation, createConversationWithMessage, addMessage, getMessages } from "@/db/queries";
-
-const DEMO_USER_ID = 1;
+import { DEMO_USER_ID } from "@/lib/constants";
 
 const ChatRequestSchema = z.object({
   conversationId: z.number().int().positive().optional(),
