@@ -1,18 +1,13 @@
 import { pgTable, serial, text, integer, timestamp, jsonb, index, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  name: text("name"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+import { users } from "./auth-schema";
+export * from "./auth-schema";
 
 export const conversations = pgTable(
   "conversations",
   {
     id: serial("id").primaryKey(),
-    userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     title: text("title"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

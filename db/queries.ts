@@ -2,7 +2,7 @@ import { db } from "./index";
 import { conversations, messages } from "./schema";
 import { eq, desc, asc, and } from "drizzle-orm";
 
-export async function getConversations(userId: number) {
+export async function getConversations(userId: string) {
   return db
     .select()
     .from(conversations)
@@ -18,7 +18,7 @@ export async function getMessages(conversationId: number) {
     .orderBy(asc(messages.createdAt));
 }
 
-export async function createConversation(userId: number) {
+export async function createConversation(userId: string) {
   const [conversation] = await db
     .insert(conversations)
     .values({ userId })
@@ -38,7 +38,7 @@ export async function addMessage(
   return message;
 }
 
-export async function getConversation(conversationId: number, userId: number) {
+export async function getConversation(conversationId: number, userId: string) {
   const [conversation] = await db
     .select()
     .from(conversations)
@@ -46,7 +46,7 @@ export async function getConversation(conversationId: number, userId: number) {
   return conversation;
 }
 
-export async function createConversationWithMessage(userId: number, content: string) {
+export async function createConversationWithMessage(userId: string, content: string) {
   return db.transaction(async (tx) => {
     const [conversation] = await tx
       .insert(conversations)

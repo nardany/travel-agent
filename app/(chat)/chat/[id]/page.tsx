@@ -1,9 +1,13 @@
 import { notFound } from "next/navigation";
 import Chat from "@/components/Chat";
 import { getConversation, getMessages } from "@/db/queries";
-import { DEMO_USER_ID } from "@/lib/constants";
+import { getSession } from "@/lib/session"
 
 export default async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await getSession();
+  if (!session) {
+    notFound();
+  }
   const { id } = await params;
   const conversationId = Number(id);
 
@@ -11,7 +15,7 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
     notFound();
   }
 
-  const conversation = await getConversation(conversationId, DEMO_USER_ID);
+  const conversation = await getConversation(conversationId, session.user.id);
   if (!conversation) {
     notFound();
   }

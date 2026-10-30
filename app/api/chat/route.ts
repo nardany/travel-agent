@@ -1,7 +1,7 @@
 import { fetchJson } from "@/lib/fetchJson";
 import { z } from "zod";
 import { getConversation, createConversationWithMessage, addMessage, getMessages } from "@/db/queries";
-import { DEMO_USER_ID } from "@/lib/constants";
+import { getSession } from "@/lib/session";
 
 const ChatRequestSchema = z.object({
   conversationId: z.number().int().positive().optional(),
@@ -22,6 +22,11 @@ interface GeminiResponse {
 }
 
 export async function POST(req: Request) {
+  const session = await getSession();
+  if (!session) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
   let body;
   try {
     body = await req.json();
@@ -44,10 +49,10 @@ export async function POST(req: Request) {
   let currentConversationId: number;
 
   if (conversationId === undefined) {
-    const conversation = await createConversationWithMessage(DEMO_USER_ID, message);
+    const conversation = await createConversationWithMessage(userId, message);
     currentConversationId = conversation.id;
   } else {
-    const conversation = await getConversation(conversationId, DEMO_USER_ID);
+    const conversation = await getConversation(conversationId, userId);
     if (!conversation) {
       return Response.json({ error: "Conversation not found" }, { status: 404 });
     }
