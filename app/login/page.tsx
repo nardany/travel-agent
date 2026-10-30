@@ -36,6 +36,7 @@ export default function Login() {
 
       if (error) {
         setError(error.message ?? "Something went wrong");
+        setLoading(false);
         return;
       }
 
