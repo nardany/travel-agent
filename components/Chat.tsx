@@ -63,6 +63,7 @@ export default function Chat({ initialConversationId, initialMessages }: ChatPro
       setConversationId(data.conversationId);
       if (conversationId === null) {
         router.replace(`/chat/${data.conversationId}`);
+        router.refresh();  
       }
       setMessages((prev) => [
         ...prev,
