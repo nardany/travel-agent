@@ -61,3 +61,10 @@ export async function createConversationWithMessage(userId: string, content: str
     return conversation;
   });
 }
+
+export async function updateConversationTitle(conversationId:number, title : string ) {
+  await db
+    .update(conversations)
+    .set({title})
+    .where(eq(conversations.id,conversationId))
+}

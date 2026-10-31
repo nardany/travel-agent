@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getConversation, createConversationWithMessage, addMessage, getMessages } from "@/db/queries";
+import { getConversation, createConversationWithMessage, addMessage, getMessages, updateConversationTitle } from "@/db/queries";
 import { getSession } from "@/lib/session";
 import { generateText, type GeminiContent } from "@/lib/gemini";
 
@@ -9,6 +9,7 @@ const ChatRequestSchema = z.object({
 });
 
 const SYSTEM_PROMPT = "You are a Smart AI Travel Agent. Always reply in the exact same language the user uses (e.g. Armenian, English, Russian). Keep your responses friendly, concise, and helpful.";
+const TITLE_PROMPT = "Create a very short title (maximum 5 words) for a conversation that starts with the user's message. Use the same language as the message. Return only the title, without quotes.";
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
 
   const { conversationId, message } = result.data;
 
+  const isNewConversation = conversationId === undefined;
   let currentConversationId: number;
 
   if (conversationId === undefined) {
@@ -46,20 +48,30 @@ export async function POST(req: Request) {
 
   const history = await getMessages(currentConversationId);
 
-  const contents : GeminiContent[] = history.map((m) => ({
+  const contents: GeminiContent[] = history.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
 
-  const replyAiMessage = await generateText(contents, SYSTEM_PROMPT);
 
-  if (replyAiMessage === null) {
+  const [replyResult, titleResult] = await Promise.allSettled([
+    generateText(contents, SYSTEM_PROMPT),
+    isNewConversation
+      ? generateText([{ role: "user", parts: [{ text: message }] }], TITLE_PROMPT)
+      : Promise.resolve(null),
+  ]);
+
+  if (replyResult.status === "rejected" || replyResult.value === null) {
     return Response.json(
       { error: "The AI service is temporarily unavailable. Please try again later." },
       { status: 502 }
     );
   }
+  const replyAiMessage = replyResult.value;
 
+  if (titleResult.status === "fulfilled" && titleResult.value) {
+    await updateConversationTitle(currentConversationId, titleResult.value.trim());
+  }
   await addMessage(currentConversationId, "assistant", replyAiMessage);
 
   return Response.json({ replyAiMessage, conversationId: currentConversationId });
