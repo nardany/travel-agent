@@ -1,25 +1,14 @@
-import { fetchJson } from "@/lib/fetchJson";
 import { z } from "zod";
 import { getConversation, createConversationWithMessage, addMessage, getMessages } from "@/db/queries";
 import { getSession } from "@/lib/session";
+import { generateText, type GeminiContent } from "@/lib/gemini";
 
 const ChatRequestSchema = z.object({
   conversationId: z.number().int().positive().optional(),
   message: z.string().trim().min(1).max(10000),
 });
 
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{ text?: string }>;
-    };
-  }>;
-  usageMetadata?: {
-    promptTokenCount?: number;
-    candidatesTokenCount?: number;
-    totalTokenCount?: number;
-  };
-}
+const SYSTEM_PROMPT = "You are a Smart AI Travel Agent. Always reply in the exact same language the user uses (e.g. Armenian, English, Russian). Keep your responses friendly, concise, and helpful.";
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -41,11 +30,6 @@ export async function POST(req: Request) {
 
   const { conversationId, message } = result.data;
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return Response.json({ error: "API key not found" }, { status: 500 });
-  }
-
   let currentConversationId: number;
 
   if (conversationId === undefined) {
@@ -62,40 +46,19 @@ export async function POST(req: Request) {
 
   const history = await getMessages(currentConversationId);
 
-  const contents = history.map((m) => ({
+  const contents : GeminiContent[] = history.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
 
-  const { data, error } = await fetchJson<GeminiResponse>(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [
-            { text: "You are a Smart AI Travel Agent. Always reply in the exact same language the user uses (e.g. Armenian, English, Russian). Keep your responses friendly, concise, and helpful." },
-          ],
-        },
-        contents: contents,
-      }),
-    }
-  );
+  const replyAiMessage = await generateText(contents, SYSTEM_PROMPT);
 
-  if (error || !data) {
-    console.error("Gemini Upstream Error:", error);
+  if (replyAiMessage === null) {
     return Response.json(
       { error: "The AI service is temporarily unavailable. Please try again later." },
       { status: 502 }
     );
   }
-
-  const replyAiMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response was received.";
-  console.log("Tokens Usage:", data.usageMetadata);
 
   await addMessage(currentConversationId, "assistant", replyAiMessage);
 
