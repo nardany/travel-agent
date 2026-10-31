@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getConversation, createConversationWithMessage, addMessage, getMessages, updateConversationTitle } from "@/db/queries";
+import { getConversation, createConversationWithMessage, addMessage, getMessages, updateConversationTitle, touchConversation } from "@/db/queries";
 import { getSession } from "@/lib/session";
 import { generateText, type GeminiContent } from "@/lib/gemini";
 
@@ -73,6 +73,6 @@ export async function POST(req: Request) {
     await updateConversationTitle(currentConversationId, titleResult.value.trim());
   }
   await addMessage(currentConversationId, "assistant", replyAiMessage);
-
+  await touchConversation(currentConversationId);
   return Response.json({ replyAiMessage, conversationId: currentConversationId });
 }

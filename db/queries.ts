@@ -7,7 +7,7 @@ export async function getConversations(userId: string) {
     .select()
     .from(conversations)
     .where(eq(conversations.userId, userId))
-    .orderBy(desc(conversations.createdAt));
+    .orderBy(desc(conversations.updatedAt));
 }
 
 export async function getMessages(conversationId: number) {
@@ -66,5 +66,12 @@ export async function updateConversationTitle(conversationId:number, title : str
   await db
     .update(conversations)
     .set({title})
+    .where(eq(conversations.id,conversationId))
+}
+
+export async function touchConversation(conversationId: number){
+  await db
+    .update(conversations)
+    .set({updatedAt : new Date()})
     .where(eq(conversations.id,conversationId))
 }
