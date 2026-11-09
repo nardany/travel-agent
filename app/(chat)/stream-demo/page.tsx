@@ -5,7 +5,7 @@ import { DefaultChatTransport } from "ai";
 
 export default function StreamDemo() {
   const [input, setInput] = useState("");
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error, stop } = useChat({
     transport: new DefaultChatTransport({ api: "/api/stream-demo" }),
   });
 
@@ -51,6 +51,11 @@ export default function StreamDemo() {
         >
           Ուղարկել
         </button>
+        {(status === "submitted" || status === "streaming") &&(
+          <button type="button" onClick={()=> stop()}>
+            Stop
+          </button>
+        )}
       </form>
 
       <p className="text-sm text-gray-400 pt-2">Status: {status}</p>

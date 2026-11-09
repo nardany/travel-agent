@@ -19,6 +19,9 @@ export async function POST(req: Request) {
     model: google("gemini-flash-lite-latest"),
     system: SYSTEM_PROMPT,
     messages: await convertToModelMessages(messages),
+    abortSignal : req.signal,
+    onAbort: () => console.log("Stream aborted"),
+    onFinish: () => console.log("Stream finished")
   });
 
   return result.toUIMessageStreamResponse();
