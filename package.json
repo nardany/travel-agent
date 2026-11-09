@@ -9,7 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.114",
+    "@ai-sdk/react": "^4.0.170",
     "@better-auth/drizzle-adapter": "^1.7.14",
+    "ai": "^7.0.166",
     "better-auth": "^1.7.14",
     "drizzle-orm": "^0.45.4",
     "next": "16.3.8",
