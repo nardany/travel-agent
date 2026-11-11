@@ -12,6 +12,7 @@ import {
 import { getSession } from "@/lib/session";
 import { generateText } from "@/lib/gemini";
 import { SYSTEM_PROMPT, TITLE_PROMPT } from "@/lib/prompts";
+import { getWeatherForecast } from "@/lib/weather";
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
 
   const getWeather = tool({
     description: `
-  Get current weather information for cities and locations in Armenia.
+  Get the weather forecast for the next 7 days information for cities and locations in Armenia.
 
   Use this tool whenever weather information is directly requested or when
   weather conditions are relevant to the user's travel plans or activities.
@@ -95,20 +96,18 @@ export async function POST(req: Request) {
 `,
     inputSchema: z.object({
       city: z.string().describe("The name of an Armenian city in English, for example: Dilijan, Gyumri, Jermuk"),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("The date of the forecast in YYYY-MM-DD format")
     }),
-    execute: async ({ city }) => {
-      console.log("Tool called: getWeather", city);
-      return {
-        city,
-        temperature: 18,
-        condition: "sunny",
-      };
+    execute: async ({ city,date }) => {
+      console.log("Tool called: getWeather", city,date);
+      return getWeatherForecast(city, date);
     },
   });
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Yerevan" });
 
   const stream = streamText({
     model: google("gemini-flash-lite-latest"),
-    system: SYSTEM_PROMPT,
+    system: `${SYSTEM_PROMPT}\n\nToday's date is ${today}.`,
     messages: modelMessages,
     abortSignal: req.signal,
     tools: { getWeather },
