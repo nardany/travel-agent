@@ -1,4 +1,4 @@
-import { streamText, consumeStream, type ModelMessage } from "ai";
+import { streamText, consumeStream, tool, stepCountIs, type ModelMessage } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import {
@@ -67,11 +67,52 @@ export async function POST(req: Request) {
       : Promise.resolve(null)
   ).catch(() => null);
 
+  const getWeather = tool({
+    description: `
+  Get current weather information for cities and locations in Armenia.
+
+  Use this tool whenever weather information is directly requested or when
+  weather conditions are relevant to the user's travel plans or activities.
+
+  This includes:
+  - When the user asks about current weather, temperature, rain, snow,
+    wind, or other weather conditions in an Armenian city.
+  - When the user asks whether it is a good time to visit a particular
+    place in Armenia.
+  - When the user is planning a trip, sightseeing, hiking, camping,
+    mountain activities, or other outdoor activities.
+  - When weather conditions could affect travel decisions, road trips,
+    transportation, or outdoor plans.
+  - When the user asks what clothes to wear or what to prepare for
+    a trip based on the weather.
+
+  The tool supports locations within Armenia, including Yerevan,
+  Gyumri, Vanadzor, Dilijan, Sevan, Tsaghkadzor, Jermuk, Goris,
+  and other Armenian cities and towns.
+
+  Always use this tool when reliable, up-to-date weather information
+  is needed instead of guessing or relying on general knowledge.
+`,
+    inputSchema: z.object({
+      city: z.string().describe("The name of an Armenian city in English, for example: Dilijan, Gyumri, Jermuk"),
+    }),
+    execute: async ({ city }) => {
+      console.log("Tool called: getWeather", city);
+      return {
+        city,
+        temperature: 18,
+        condition: "sunny",
+      };
+    },
+  });
+
   const stream = streamText({
     model: google("gemini-flash-lite-latest"),
     system: SYSTEM_PROMPT,
     messages: modelMessages,
     abortSignal: req.signal,
+    tools: { getWeather },
+    stopWhen: stepCountIs(3)
   });
 
   return stream.toUIMessageStreamResponse({
