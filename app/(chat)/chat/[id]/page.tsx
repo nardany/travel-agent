@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Chat from "@/components/Chat";
 import { getConversation, getMessages } from "@/db/queries";
 import { getSession } from "@/lib/session"
+import type { UIMessage } from "ai";
 
 export default async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -22,10 +23,10 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
 
   const history = await getMessages(conversationId);
 
-  const initialMessages = history.map((m) => ({
+  const initialMessages: UIMessage[] = history.map((m) => ({
     id: String(m.id),
     role: m.role as "user" | "assistant",
-    content: m.content,
+    parts: [{ type: "text", text: m.content }],
   }));
 
   return <Chat initialConversationId={conversationId} initialMessages={initialMessages} />;
