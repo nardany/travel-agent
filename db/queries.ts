@@ -1,6 +1,6 @@
 import { db } from "./index";
 import { conversations, messages, toolCalls } from "./schema";
-import { eq, desc, asc, and } from "drizzle-orm";
+import { eq, desc, asc, and, inArray } from "drizzle-orm";
 
 export async function getConversations(userId: string) {
   return db
@@ -84,4 +84,13 @@ export async function saveToolCalls(
   await db.insert(toolCalls).values(
     calls.map((c) => ({ messageId, ...c }))
   );
+}
+
+export async function getToolCalls(messageIds: number[]) {
+  if (messageIds.length === 0) return [];
+  return db
+    .select()
+    .from(toolCalls)
+    .where(inArray(toolCalls.messageId, messageIds))
+    .orderBy(asc(toolCalls.createdAt));
 }
