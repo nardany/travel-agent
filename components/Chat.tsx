@@ -5,6 +5,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import styles from "@/app/page.module.css"
 import ReactMarkdown from "react-markdown";
+import WeatherCard from "@/components/WeatherCard"
 
 interface ChatProps {
   initialConversationId: number | null;
@@ -72,12 +73,7 @@ export default function Chat({ initialConversationId, initialMessages }: ChatPro
           )}
 
           {messages.map((message) => {
-            const text = message.parts
-              .filter((p) => p.type === "text")
-              .map((p) => p.text)
-              .join("");
-            const isThinking = message.role === "assistant" && text === "";
-
+            const isThinking = message.role === "assistant" && message.parts.length === 0;
             return (
               <div
                 key={message.id}
@@ -90,7 +86,22 @@ export default function Chat({ initialConversationId, initialMessages }: ChatPro
                   {isThinking ? (
                     <span className="animate-pulse">...</span>
                   ) : (
-                    <ReactMarkdown>{text}</ReactMarkdown>
+                    message.parts.map((part, i) => {
+                      if (part.type === "text") {
+                        return <ReactMarkdown key={i}>{part.text}</ReactMarkdown>
+                      }
+                      if (part.type === "tool-getWeather") {
+                        return (
+                          <WeatherCard
+                            key={i}
+                            state={part.state}
+                            input={part.input as { city?: string; date?: string }}
+                            output={part.output}
+                          />
+                        )
+                      }
+                      return null;
+                    })
                   )}
                 </div>
               </div>
