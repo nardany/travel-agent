@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { conversations, messages } from "./schema";
+import { conversations, messages, toolCalls } from "./schema";
 import { eq, desc, asc, and } from "drizzle-orm";
 
 export async function getConversations(userId: string) {
@@ -74,4 +74,14 @@ export async function touchConversation(conversationId: number){
     .update(conversations)
     .set({updatedAt : new Date()})
     .where(eq(conversations.id,conversationId))
+}
+
+export async function saveToolCalls(
+  messageId: number,
+  calls: { toolName: string; input: unknown; output: unknown; durationMs: number }[]
+) {
+  if (calls.length === 0) return;
+  await db.insert(toolCalls).values(
+    calls.map((c) => ({ messageId, ...c }))
+  );
 }

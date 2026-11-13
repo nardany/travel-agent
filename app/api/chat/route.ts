@@ -8,6 +8,7 @@ import {
   getMessages,
   updateConversationTitle,
   touchConversation,
+  saveToolCalls,
 } from "@/db/queries";
 import { getSession } from "@/lib/session";
 import { generateText } from "@/lib/gemini";
@@ -68,6 +69,8 @@ export async function POST(req: Request) {
       : Promise.resolve(null)
   ).catch(() => null);
 
+  const collectedCalls: { toolName: string; input: unknown; output: unknown; durationMs: number }[] = [];
+
   const getWeather = tool({
     description: `
   Get the weather forecast for the next 7 days information for cities and locations in Armenia.
@@ -99,8 +102,15 @@ export async function POST(req: Request) {
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("The date of the forecast in YYYY-MM-DD format")
     }),
     execute: async ({ city,date }) => {
-      console.log("Tool called: getWeather", city,date);
-      return getWeatherForecast(city, date);
+      const start = Date.now();
+      const result = await getWeatherForecast(city, date);
+      collectedCalls.push({
+        toolName: "getWeather",
+        input: {city, date},
+        output: result,
+        durationMs: Date.now() - start
+      })
+      return result;
     },
   });
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Yerevan" });
@@ -124,8 +134,9 @@ export async function POST(req: Request) {
         .map((p) => p.text)
         .join("");
 
-      if (text) {
-        await addMessage(currentConversationId, "assistant", text);
+      if (text || collectedCalls.length > 0) {
+        const saved = await addMessage(currentConversationId, "assistant", text);
+        await saveToolCalls(saved.id,collectedCalls)
       }
       await touchConversation(currentConversationId);
 

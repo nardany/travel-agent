@@ -42,7 +42,7 @@ export default function WeatherCard({ state, input, output }: WeatherCardProps) 
   }
 
   const data = output as WeatherOutput;
-
+  if (!data) return null;
   if (data?.error) {
     return <div className="text-sm text-gray-400">{data.error}</div>;
   }
@@ -59,7 +59,7 @@ export default function WeatherCard({ state, input, output }: WeatherCardProps) 
           {Math.round(data.maxTemperature ?? 0)}° / {Math.round(data.minTemperature ?? 0)}°
         </div>
 
-        <div className="flex justify-between text-[#0b0d12]">
+        <div className="flex justify-between **:text-[#0b0d12]">
           <span title={data.condition}>
             <Icon className="h-6 w-6" aria-label={data.condition} />
           </span>
