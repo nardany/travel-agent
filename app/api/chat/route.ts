@@ -14,6 +14,7 @@ import { getSession } from "@/lib/session";
 import { generateText } from "@/lib/gemini";
 import { SYSTEM_PROMPT, TITLE_PROMPT } from "@/lib/prompts";
 import { getWeatherForecast } from "@/lib/weather";
+import { getExchangeRate } from "@/lib/exchange";
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -113,6 +114,29 @@ export async function POST(req: Request) {
       return result;
     },
   });
+
+  const getExchange = tool({
+    description: `
+    Gets the current exchange rate between two currencies and converts a specified amount using up-to-date market data.
+    Use this when the user asks about currency exchange rates, price conversions, or queries like "how much is X in drams".
+    Never guess or hardcode exchange rates without calling the tool.`,
+    inputSchema: z.object({
+      from: z.string().regex(/^[A-Z]{3}$/).describe("Source ISO 4217 currency code to convert from (e.g. USD, EUR, AMD, RUB)"),
+      to:z.string().regex(/^[A-Z]{3}$/).describe("Target ISO 4217 currency code to convert to (e.g. USD, EUR, AMD, RUB)"),
+      amount:z.number().positive().default(1).describe("The amount to convert")
+    }),
+    execute: async({from,to,amount})=>{
+      const start = Date.now();
+      const result = await getExchangeRate(from,to,amount);
+      collectedCalls.push({
+        toolName: "getExchange",
+        input: {from,to,amount},
+        output: result,
+        durationMs: Date.now() - start
+      })
+      return result;
+    }
+  })
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Yerevan" });
 
   const stream = streamText({
@@ -120,7 +144,7 @@ export async function POST(req: Request) {
     system: `${SYSTEM_PROMPT}\n\nToday's date is ${today}.`,
     messages: modelMessages,
     abortSignal: req.signal,
-    tools: { getWeather },
+    tools: { getWeather,getExchange },
     stopWhen: stepCountIs(3)
   });
 

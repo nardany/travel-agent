@@ -6,6 +6,7 @@ import { DefaultChatTransport, type UIMessage } from "ai";
 import styles from "@/app/page.module.css"
 import ReactMarkdown from "react-markdown";
 import WeatherCard from "@/components/WeatherCard"
+import ExchangeCard from "./ExchangeCard";
 
 interface ChatProps {
   initialConversationId: number | null;
@@ -96,6 +97,16 @@ export default function Chat({ initialConversationId, initialMessages }: ChatPro
                             key={i}
                             state={part.state}
                             input={part.input as { city?: string; date?: string }}
+                            output={part.output}
+                          />
+                        )
+                      }
+                      if(part.type === "tool-getExchange"){
+                        return(
+                          <ExchangeCard
+                            key={i}
+                            state={part.state}
+                            input={part.input as { from?: string; to?: string; amount?: number}}
                             output={part.output}
                           />
                         )
