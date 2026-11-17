@@ -102,12 +102,12 @@ export async function POST(req: Request) {
       city: z.string().describe("The name of an Armenian city in English, for example: Dilijan, Gyumri, Jermuk"),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("The date of the forecast in YYYY-MM-DD format")
     }),
-    execute: async ({ city,date }) => {
+    execute: async ({ city, date }) => {
       const start = Date.now();
       const result = await getWeatherForecast(city, date);
       collectedCalls.push({
         toolName: "getWeather",
-        input: {city, date},
+        input: { city, date },
         output: result,
         durationMs: Date.now() - start
       })
@@ -122,29 +122,46 @@ export async function POST(req: Request) {
     Never guess or hardcode exchange rates without calling the tool.`,
     inputSchema: z.object({
       from: z.string().regex(/^[A-Z]{3}$/).describe("Source ISO 4217 currency code to convert from (e.g. USD, EUR, AMD, RUB)"),
-      to:z.string().regex(/^[A-Z]{3}$/).describe("Target ISO 4217 currency code to convert to (e.g. USD, EUR, AMD, RUB)"),
-      amount:z.number().positive().default(1).describe("The amount to convert")
+      to: z.string().regex(/^[A-Z]{3}$/).describe("Target ISO 4217 currency code to convert to (e.g. USD, EUR, AMD, RUB)"),
+      amount: z.number().positive().default(1).describe("The amount to convert")
     }),
-    execute: async({from,to,amount})=>{
+    execute: async ({ from, to, amount }) => {
       const start = Date.now();
-      const result = await getExchangeRate(from,to,amount);
+      const result = await getExchangeRate(from, to, amount);
       collectedCalls.push({
         toolName: "getExchange",
-        input: {from,to,amount},
+        input: { from, to, amount },
         output: result,
         durationMs: Date.now() - start
       })
       return result;
     }
   })
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Yerevan" });
+
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const nowMs = Date.now();
+
+  const next7Days = Array.from({ length: 7 }, (_, i) => {
+    const dateObj = new Date(nowMs + i * DAY_MS);
+    const dateStr = dateObj.toLocaleDateString("en-CA", { timeZone: "Asia/Yerevan" });
+    const weekdayStr = dateObj.toLocaleDateString("en-US", {
+      timeZone: "Asia/Yerevan",
+      weekday: "long",
+    });
+    return `${dateStr} ${weekdayStr}`;
+  }).join(", ");
+  const today = new Date(nowMs).toLocaleDateString("en-CA", { timeZone: "Asia/Yerevan" });
+  const weekday = new Date(nowMs).toLocaleDateString("en-US", {
+    timeZone: "Asia/Yerevan",
+    weekday: "long",
+  });
 
   const stream = streamText({
     model: google("gemini-flash-lite-latest"),
-    system: `${SYSTEM_PROMPT}\n\nToday's date is ${today}.`,
+    system: `${SYSTEM_PROMPT}\n\nToday's date is ${today} (${weekday}).\nNext 7 days: ${next7Days}.`,
     messages: modelMessages,
     abortSignal: req.signal,
-    tools: { getWeather,getExchange },
+    tools: { getWeather, getExchange },
     stopWhen: stepCountIs(3)
   });
 
@@ -160,7 +177,7 @@ export async function POST(req: Request) {
 
       if (text || collectedCalls.length > 0) {
         const saved = await addMessage(currentConversationId, "assistant", text);
-        await saveToolCalls(saved.id,collectedCalls)
+        await saveToolCalls(saved.id, collectedCalls)
       }
       await touchConversation(currentConversationId);
 
